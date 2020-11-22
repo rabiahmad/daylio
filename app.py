@@ -12,8 +12,8 @@ from datetime import date
 import numpy as np
 
 # import data
-df = pd.read_excel("daylio.xlsx", sheet_name="data")
-moods = pd.read_excel("daylio.xlsx", sheet_name="moods")
+df = pd.read_excel("data/daylio.xlsx", sheet_name="data")
+moods = pd.read_excel("data/daylio.xlsx", sheet_name="moods")
 
 # clean data
 df["full_date"] = pd.to_datetime(df["full_date"])
