@@ -11,6 +11,12 @@ from datetime import date
 
 import numpy as np
 
+# ------------------------------------------------------------------------
+# Initialise App
+app = dash.Dash(__name__)
+server = app.server
+# ------------------------------------------------------------------------
+
 # import data
 df = pd.read_excel("data/daylio.xlsx", sheet_name="data")
 moods = pd.read_excel("data/daylio.xlsx", sheet_name="moods")
@@ -35,7 +41,6 @@ df_mood_variance = df_avgmood.groupby("full_date")\
 
 
 # average daily range over time between all members of the "name" class
-
 # logic: get the max(mood) - min(mood) per day. Then calculate moving average using all previous values. Do this BY name.
 df_avgrange = df.groupby(by=["full_date", "name"])\
     .agg(max_mood=("mood value", np.max), min_mood=("mood value", np.min))\
@@ -49,9 +54,6 @@ df_avgrange = df_avgrange.set_index("full_date").groupby("name").expanding(min_p
 
 print(df_avgrange.head())
 
-# ------------------------------------------------------------------------
-# Initialise App
-app = dash.Dash(__name__)
 
 app.layout = html.Div([
     html.H1("Daylio", style={"text-align": "center"}),
@@ -78,8 +80,6 @@ app.layout = html.Div([
 ])
 
 # ------------------------------------------------------------------------
-
-
 @app.callback(
     Output(component_id="average-mood-over-time", component_property="figure"),
     [Input(component_id="my-date-picker-range", component_property="start_date"),
@@ -135,9 +135,6 @@ def update_chart3(start_date, end_date):
     figure = px.line(data_copy, x="full_date", y="mood_range", color="name")
     figure.layout.template = 'simple_white'
     return figure
-
-
-
 
 
 # ------------------------------------------------------------------------
