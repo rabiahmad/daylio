@@ -19,11 +19,11 @@ moods = pd.read_excel("data/daylio.xlsx", sheet_name="moods")
 df["full_date"] = pd.to_datetime(df["full_date"])
 
 # average mood over time
-aggregations = {"mood value": "mean"}
+aggregations = {"mood value" : "mean"}
 df_avgmood = df.groupby(by=["full_date", "name"])\
     .agg(aggregations)\
     .reset_index()\
-    .rename(columns={'mood value': 'average mood'})
+    .rename(columns={'mood value' : 'average mood'})
 
 
 # variance of average mood over time between all members of the "name" class
@@ -32,6 +32,22 @@ df_mood_variance = df_avgmood.groupby("full_date")\
     .agg(aggregations)\
     .reset_index()\
     .rename(columns={'average mood': 'mood variance'})
+
+
+# average daily range over time between all members of the "name" class
+
+# logic: get the max(mood) - min(mood) per day. Then calculate moving average using all previous values. Do this BY name.
+df_avgrange = df.groupby(by=["full_date", "name"])\
+    .agg(max_mood=("mood value", np.max), min_mood=("mood value", np.min))\
+    .reset_index()\
+    
+df_avgrange["mood_range"] = df_avgrange.apply(lambda x: x["max_mood"] - x["min_mood"], axis=1)
+
+print(df_avgrange.head())
+
+df_avgrange = df_avgrange.set_index("full_date").groupby("name").expanding(min_periods=1).mean().reset_index()
+
+print(df_avgrange.head())
 
 # ------------------------------------------------------------------------
 # Initialise App
@@ -56,6 +72,9 @@ app.layout = html.Div([
     dcc.Graph(id="average-mood-over-time", figure={}),
 
     dcc.Graph(id="mood-variance-over-time", figure={}),
+
+    dcc.Graph(id="avg_mood_range_over_time", figure={})
+
 ])
 
 # ------------------------------------------------------------------------
@@ -67,8 +86,6 @@ app.layout = html.Div([
      Input(component_id="my-date-picker-range", component_property="end_date")]
 )
 def update_chart1(start_date, end_date):
-    # print(start_date, type(start_date))
-    # print(end_date, type(end_date))
 
     data_copy = df_avgmood.copy()
     data_copy = data_copy[(data_copy["full_date"] >= start_date) & (
@@ -102,6 +119,25 @@ def update_chart2(start_date, end_date):
     figure = px.line(data_copy, x="full_date", y="mood variance")
     figure.layout.template = 'simple_white'
     return figure
+
+
+
+@app.callback(
+    Output(component_id="avg_mood_range_over_time", component_property="figure"),
+    [Input(component_id="my-date-picker-range", component_property="start_date"),
+     Input(component_id="my-date-picker-range", component_property="end_date")]
+)
+def update_chart3(start_date, end_date):
+    data_copy = df_avgrange.copy()
+    data_copy = data_copy[(data_copy["full_date"] >= start_date) & (
+        data_copy["full_date"] <= end_date)]
+
+    figure = px.line(data_copy, x="full_date", y="mood_range", color="name")
+    figure.layout.template = 'simple_white'
+    return figure
+
+
+
 
 
 # ------------------------------------------------------------------------
