@@ -6,6 +6,8 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 
+import dash_bootstrap_components as dbc
+
 from datetime import datetime
 from datetime import date
 
@@ -13,7 +15,7 @@ import numpy as np
 
 # ------------------------------------------------------------------------
 # Initialise App
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 server = app.server
 # ------------------------------------------------------------------------
 
@@ -48,11 +50,11 @@ df_avgrange = df.groupby(by=["full_date", "name"])\
     
 df_avgrange["mood_range"] = df_avgrange.apply(lambda x: x["max_mood"] - x["min_mood"], axis=1)
 
-print(df_avgrange.head())
+# print(df_avgrange.head())
 
 df_avgrange = df_avgrange.set_index("full_date").groupby("name").expanding(min_periods=1).mean().reset_index()
 
-print(df_avgrange.head())
+# print(df_avgrange.head())
 
 
 app.layout = html.Div([
