@@ -33,7 +33,7 @@ credentials = service_account.Credentials.from_service_account_file(
 
 # import data
 SAMPLE_SPREADSHEET_ID = '1TNe_T7JwdpEqBenb0_6t6aHXJqaSlyJ1IrTyl7vR3BY'
-SAMPLE_RANGE_NAME = 'data!A1:G335'
+SAMPLE_RANGE_NAME = 'data!A1:G10000'
 service = build('sheets', 'v4', credentials=credentials)
 sheet = service.spreadsheets()
 result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
