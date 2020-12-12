@@ -1,37 +1,82 @@
+# importing the required libraries
 import pandas as pd
+import numpy as np
+import re
 from plotly import express as px
-
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-
-import dash_bootstrap_components as dbc
-
 from datetime import datetime
 from datetime import date
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
-import numpy as np
 
 # ------------------------------------------------------------------------
 # Initialise App
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
+app = dash.Dash(__name__)
 server = app.server
 # ------------------------------------------------------------------------
 
+
+# setting up the Google Sheets API variables and credentials
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SERVICE_ACCOUNT_FILE = 'creds.json'
+
+credentials = None
+credentials = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+
 # import data
-df = pd.read_excel("data/daylio.xlsx", sheet_name="data")
-moods = pd.read_excel("data/daylio.xlsx", sheet_name="moods")
+SAMPLE_SPREADSHEET_ID = '1TNe_T7JwdpEqBenb0_6t6aHXJqaSlyJ1IrTyl7vR3BY'
+SAMPLE_RANGE_NAME = 'data!A1:G335'
+service = build('sheets', 'v4', credentials=credentials)
+sheet = service.spreadsheets()
+result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+                            range=SAMPLE_RANGE_NAME).execute()
+values = result.get('values')
+df = pd.DataFrame(values[1:], columns=values[0])
 
 # clean data
-df["full_date"] = pd.to_datetime(df["full_date"])
+
+
+def convert_str_to_date(input, input_format, output_format='%Y-%m-%d'):
+    '''Convert date string dd/mm/yyyy to datetime yyyy-mm-dd using regular expressions'''
+    date = pd.datetime.strptime(str(input), input_format)
+    return date  # date.strftime(output_format)
+
+
+def get_date(string):
+    regex = '^(\d{2})\/(\d{2})\/(\d{4})$'
+    m = re.match(regex, string)
+    dateparts = (m.group(3), m.group(2), m.group(1))
+    sep = '-'
+    date = sep.join(dateparts)
+    return date
+
+
+# df["full_date"] = pd.to_datetime(df["full_date"])
+
+df['full_date'] = df['full_date'].apply(lambda d: get_date(d))
+
+
+print(df["full_date"].unique())
+
+# df["full_date"] = df["full_date"]\
+#     .apply(lambda x: convert_str_to_date(x, input_format='%Y-%d-%m'))
+
+df['mood value'] = df['mood value'].astype(str).astype(int)
 
 # average mood over time
-aggregations = {"mood value" : "mean"}
+aggregations = {"mood value": "mean"}
 df_avgmood = df.groupby(by=["full_date", "name"])\
     .agg(aggregations)\
     .reset_index()\
-    .rename(columns={'mood value' : 'average mood'})
+    .rename(columns={'mood value': 'average mood'})
 
 
 # variance of average mood over time between all members of the "name" class
@@ -47,14 +92,13 @@ df_mood_variance = df_avgmood.groupby("full_date")\
 df_avgrange = df.groupby(by=["full_date", "name"])\
     .agg(max_mood=("mood value", np.max), min_mood=("mood value", np.min))\
     .reset_index()\
-    
-df_avgrange["mood_range"] = df_avgrange.apply(lambda x: x["max_mood"] - x["min_mood"], axis=1)
 
-# print(df_avgrange.head())
+df_avgrange["mood_range"] = df_avgrange.apply(
+    lambda x: x["max_mood"] - x["min_mood"], axis=1)
 
-df_avgrange = df_avgrange.set_index("full_date").groupby("name").expanding(min_periods=1).mean().reset_index()
 
-# print(df_avgrange.head())
+df_avgrange = df_avgrange.set_index("full_date").groupby(
+    "name").expanding(min_periods=1).mean().reset_index()
 
 
 app.layout = html.Div([
@@ -82,6 +126,8 @@ app.layout = html.Div([
 ])
 
 # ------------------------------------------------------------------------
+
+
 @app.callback(
     Output(component_id="average-mood-over-time", component_property="figure"),
     [Input(component_id="my-date-picker-range", component_property="start_date"),
@@ -123,9 +169,9 @@ def update_chart2(start_date, end_date):
     return figure
 
 
-
 @app.callback(
-    Output(component_id="avg_mood_range_over_time", component_property="figure"),
+    Output(component_id="avg_mood_range_over_time",
+           component_property="figure"),
     [Input(component_id="my-date-picker-range", component_property="start_date"),
      Input(component_id="my-date-picker-range", component_property="end_date")]
 )
