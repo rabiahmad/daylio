@@ -41,15 +41,8 @@ result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
 values = result.get('values')
 df = pd.DataFrame(values[1:], columns=values[0])
 
+
 # clean data
-
-
-def convert_str_to_date(input, input_format, output_format='%Y-%m-%d'):
-    '''Convert date string dd/mm/yyyy to datetime yyyy-mm-dd using regular expressions'''
-    date = pd.datetime.strptime(str(input), input_format)
-    return date  # date.strftime(output_format)
-
-
 def get_date(string):
     regex = '^(\d{2})\/(\d{2})\/(\d{4})$'
     m = re.match(regex, string)
@@ -59,16 +52,7 @@ def get_date(string):
     return date
 
 
-# df["full_date"] = pd.to_datetime(df["full_date"])
-
 df['full_date'] = df['full_date'].apply(lambda d: get_date(d))
-
-
-print(df["full_date"].unique())
-
-# df["full_date"] = df["full_date"]\
-#     .apply(lambda x: convert_str_to_date(x, input_format='%Y-%d-%m'))
-
 df['mood value'] = df['mood value'].astype(str).astype(int)
 
 # average mood over time
