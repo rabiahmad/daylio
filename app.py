@@ -34,7 +34,8 @@ credentials = service_account.Credentials.from_service_account_file(
 
 # import data
 SAMPLE_SPREADSHEET_ID = '1TNe_T7JwdpEqBenb0_6t6aHXJqaSlyJ1IrTyl7vR3BY'
-SAMPLE_RANGE_NAME = 'data!A1:G10000'
+SAMPLE_RANGE_NAME_HIBAH = 'Hibah!A1:G10000'
+SAMPLE_RANGE_NAME_RABI = 'Rabi!A1:G10000'
 service = build('sheets', 'v4', credentials=credentials)
 sheet = service.spreadsheets()
 
@@ -51,9 +52,16 @@ def get_date(string):
 
 def get_dataframe():
     '''Use this to periodically refresh the dataframe'''
-    result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
-                                range=SAMPLE_RANGE_NAME).execute()
-    values = result.get('values')
+    result_h = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+                                  range=SAMPLE_RANGE_NAME_HIBAH).execute()
+    values_h = result_h.get('values')
+
+    result_r = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+                                  range=SAMPLE_RANGE_NAME_RABI).execute()
+    values_r = result_r.get('values')
+
+    values = values_r + values_h[1:]
+
     df = pd.DataFrame(values[1:], columns=values[0])
     df['full_date'] = df['full_date'].apply(lambda d: get_date(d))
     df['mood value'] = df['mood value'].astype(str).astype(int)
